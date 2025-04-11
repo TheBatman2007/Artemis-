@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
+    <title>Artemis - Global Period Data</title>
+    <div id="threejsContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; opacity: 0; transition: opacity 1s ease;"></div>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+        
+        body {
+            background-color: #0a0a1a;
+            color: #fff;
+            overflow: hidden;
+        }
+        #threejsContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+#threejsContainer canvas {
+  display: block;
+}
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0f0f2d 0%, #1a1a3a 100%);
+            position: relative;
+            perspective: 1000px;
+        }
+        
+        .artemis-interface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+        
+        .artemis-logo {
+            display: flex;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+        
+        .artemis-logo::before {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: #e91e63;
+            border-radius: 50%;
+            margin-right: 15px;
+            box-shadow: 0 0 15px #e91e63;
+        }
+        
+        .artemis-controls {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .control-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 30px;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        
+        .counter-section {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 5;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 1s forwards 0.5s;
+        }
+        
+        .counter-title {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            color: #fff;
+            font-weight: 300;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        
+        .counter-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .counter {
+            font-size: 6rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #e91e63, #2196f3);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(233, 30, 99, 0.5);
+        }
+        
+        .counter-plus {
+            font-size: 6rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #2196f3, #e91e63);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            margin-left: 10px;
+            text-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+        }
+        
+        .counter-description {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .faces-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        
+        .faces-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 10px;
+            width: 90%;
+            max-width: 1400px;
+        }
+        
+        .face {
+            width: 100%;
+            aspect-ratio: 1/1;
+            border-radius: 50%;
+            overflow: hidden;
+            opacity: 0;
+            transform: scale(0.8);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background-position: center;
+            background-size: cover;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .github-map-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 1000px;
+        }
+        
+        .github-map {
+            width: 90%;
+            max-width: 1400px;
+            height: 70vh;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(50, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            gap: 3px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transform-style: preserve-3d;
+            transform: rotateX(15deg);
+            transition: transform 1.5s ease;
+        }
+        
+        .map-cell {
+            width: 100%;
+            height: 100%;
+            border-radius: 2px;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+            transform: translateZ(0px);
+        }
+        
+        .data-indicators {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 5;
+            opacity: 0;
+            animation: fadeIn 1s forwards 10s;
+        }
+        
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .dot-level1 {
+            background-color: rgba(233, 30, 99, 0.2);
+        }
+        
+        .dot-level2 {
+            background-color: rgba(233, 30, 99, 0.4);
+        }
+        
+        .dot-level3 {
+            background-color: rgba(233, 30, 99, 0.6);
+        }
+        
+        .dot-level4 {
+            background-color: rgba(233, 30, 99, 0.8);
+        }
+        
+        .dot-level5 {
+            background-color: rgba(233, 30, 99, 1);
+            box-shadow: 0 0 10px rgba(233, 30, 99, 0.5);
+        }
+        
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #e91e63, #2196f3);
+            width: 0%;
+            z-index: 20;
+            box-shadow: 0 0 10px rgba(233, 30, 99, 0.5);
+            animation: progressAnimation 15s linear forwards;
+        }
+        
+        .glow-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(233, 30, 99, 0.15) 0%, rgba(10, 10, 26, 0) 70%);
+            z-index: 1;
+            opacity: 0.8;
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+        }
+        
+        .map-info {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 5;
+            text-align: right;
+            opacity: 0;
+            animation: fadeIn 1s forwards 11s;
+        }
+        
+        .map-info-title {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        
+        .map-region-highlight {
+            color: #e91e63;
+            font-weight: bold;
+        }
+        
+        .map-3d-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+            opacity: 0;
+            animation: fadeIn 1s forwards 12s;
+        }
+        
+        .map-control-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .map-control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes progressAnimation {
+            to {
+                width: 100%;
+            }
+        }
+        
+        @keyframes pulseMap {
+            0% {
+                transform: rotateX(15deg) scale(1);
+            }
+            50% {
+                transform: rotateX(15deg) scale(1.02);
+            }
+            100% {
+                transform: rotateX(15deg) scale(1);
+            }
+        }
+        
+        @keyframes fadeInFace {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }/* THREE.js container styles */
+#threeContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    opacity: 1; /* Changed from 0 to make it visible by default */
+    transition: opacity 1s ease;
+}
+
+/* Optional control panel for sphere */
+.sphere-controls {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+}
+
+.sphere-controls button {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.sphere-controls button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* Sphere info panel */
+.sphere-info {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    background: rgba(10, 10, 24, 0.7);
+    border-radius: 10px;
+    padding: 15px;
+    color: #fff;
+    font-size: 14px;
+    max-width: 300px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(233, 30, 99, 0.3);
+    box-shadow: 0 0 20px rgba(233, 30, 99, 0.2);
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.sphere-info.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.sphere-info h3 {
+    color: #e91e63;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.sphere-info p {
+    margin: 5px 0;
+    line-height: 1.4;
+}
+
+/* Loading indicator for sphere */
+.sphere-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #e91e63;
+    font-size: 16px;
+    text-align: center;
+    z-index: 101;
+}
+
+.sphere-loading:after {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(233, 30, 99, 0.3);
+    border-top: 3px solid #e91e63;
+    border-radius: 50%;
+    margin: 10px auto;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Connection lines animation */
+@keyframes pulseLine {
+    0% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0.2;
+    }
+}
+
+/* Data point glow animation */
+@keyframes glowPoint {
+    0% {
+        box-shadow: 0 0 5px rgba(233, 30, 99, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(233, 30, 99, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(233, 30, 99, 0.5);
+    }
+}
+        
+        @media (max-width: 768px) {
+            .artemis-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-button {
+                margin-bottom: 10px;
+            }
+            
+            .counter-title {
+                font-size: 1.8rem;
+            }
+            
+            .counter {
+                font-size: 4rem;
+            }
+            
+            .counter-plus {
+                font-size: 4rem;
+            }
+            
+            .counter-description {
+                font-size: 1.2rem;
+            }
+            
+            .faces-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="artemis-interface">
+            <div class="artemis-logo">ARTEMIS</div>
+            <div class="artemis-controls">
+                <div class="control-button">Global View</div>
+                <div class="control-button">Data Analysis</div>
+                <div class="control-button">Regional Insights</div>
+            </div>
+        </div>
+        
+        <div class="glow-effect"></div>
+        <div class="particles" id="particles"></div>
+        
+        <div class="counter-section" id="counterSection">
+            <h2 class="counter-title">Women experiencing menstruation worldwide</h2>
+            <div class="counter-wrapper">
+                <div class="counter" id="counter">0</div>
+                <div class="counter-plus">+</div>
+            </div>
+            <p class="counter-description">Approximately 26% of the global population</p>
+        </div>
+        
+        <div class="faces-container" id="facesContainer">
+            <div class="faces-grid" id="facesGrid">
+                <!-- Faces will be added dynamically -->
+            </div>
+        </div>
+        
+        <div class="github-map-container" id="mapContainer">
+            <div class="github-map" id="githubMap">
+                <!-- Map cells will be added dynamically -->
+            </div>
+            <div class="map-3d-controls">
+                <div class="map-control-btn" id="rotateLeft">⟲</div>
+                <div class="map-control-btn" id="rotateRight">⟳</div>
+                <div class="map-control-btn" id="zoomIn">+</div>
+                <div class="map-control-btn" id="zoomOut">-</div>
+            </div>
+        </div>
+        
+        <div class="map-info">
+            <div class="map-info-title">Highest concentration</div>
+            <div>Southern <span class="map-region-highlight">Asia</span> & Eastern <span class="map-region-highlight">Africa</span></div>
+        </div>
+        
+        <div class="data-indicators">
+            <div class="indicator">
+                <div class="indicator-dot dot-level1"></div>
+                <span>Low density regions</span>
+            </div>
+            <div class="indicator">
+                <div class="indicator-dot dot-level3"></div>
+                <span>Medium density regions</span>
+            </div>
+            <div class="indicator">
+                <div class="indicator-dot dot-level5"></div>
+                <span>High density regions</span>
+            </div>
+        </div>
+        
+        <div class="progress-bar"></div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+    // Create background particles
+    createParticles();
+    
+    // Animate counter from 0 to 1.8 billion
+    animateCounter();
+    
+    // Generate faces grid
+    generateFaces();
+    
+    // Show faces after counter
+    setTimeout(() => {
+        document.getElementById('facesContainer').style.opacity = '1';
+        animateFaces();
+    }, 5000);
+    
+    // Show GitHub-style 3D map after faces
+    setTimeout(() => {
+        document.getElementById('facesContainer').style.opacity = '0';
+        document.getElementById('mapContainer').style.opacity = '1';
+        generate3DGithubStyleMap();
+        
+        // Add event listeners for 3D map controls
+        setupMapControls();
+    }, 10000);
+    
+    // Add button functionality
+    setupButtonControls();
+});
+
+function createParticles() {
+    const particlesContainer = document.getElementById('particles');
+    const particleCount = 100;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        
+        // Random position
+        const x = Math.random() * 100;
+        const y = Math.random() * 100;
+        
+        particle.style.left = `${x}%`;
+        particle.style.top = `${y}%`;
+        particle.style.opacity = Math.random() * 0.5 + 0.1;
+        
+        // Random size
+        const size = Math.random() * 3 + 1;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // Add subtle animation
+        particle.style.animation = `fadeIn ${Math.random() * 2 + 1}s infinite alternate ${Math.random() * 2}s`;
+        
+        particlesContainer.appendChild(particle);
+    }
+}
+
+function animateCounter() {
+    const counter = document.getElementById('counter');
+    const targetValue = 1800000000;
+    const duration = 4000; // 4 seconds
+    const frameDuration = 20; // 20ms per frame (50fps)
+    const frames = duration / frameDuration;
+    const increment = targetValue / frames;
+    
+    let currentValue = 0;
+    let currentFrame = 0;
+    
+    const animation = setInterval(() => {
+        currentFrame++;
+        currentValue += increment;
+        
+        if (currentFrame >= frames) {
+            clearInterval(animation);
+            currentValue = targetValue;
+        }
+        
+        // Format number with commas
+        counter.textContent = Math.floor(currentValue).toLocaleString();
+        
+        if (currentFrame >= frames) {
+            clearInterval(animation);
+        }
+    }, frameDuration);
+}
+
+function generateFaces() {
+    const facesGrid = document.getElementById('facesGrid');
+    
+    // Clear any existing faces
+    facesGrid.innerHTML = '';
+    
+    // Loop through all 45 faces
+    for (let i = 1; i <= 45; i++) {
+        let face = document.createElement('div');
+        face.className = 'face';
+        face.style.backgroundImage = `url('OIP (${i}).jpg')`;
+        facesGrid.appendChild(face);
+    }
+}
+
+function animateFaces() {
+    const faces = document.querySelectorAll('.face');
+    
+    faces.forEach((face, index) => {
+        // Create a staggered, more natural looking appear animation
+        setTimeout(() => {
+            face.style.opacity = '0';
+            face.style.animation = `fadeInFace 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`;
+            face.style.animationDelay = `${index * 40}ms`; // More delay between each face
+        }, 50 * index); // Staggered delay for each face
+    });
+}
+
+function generate3DGithubStyleMap() {
+    const map = document.getElementById('githubMap');
+    const rows = 20;
+    const cols = 50;
+    
+    // Clear any existing cells
+    map.innerHTML = '';
+    
+    // Define the map shape (which cells should be more active)
+    // This creates a rough world map shape
+    const worldMapShape = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 4, 3, 2, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 2, 2, 3, 3, 3, 3, 3, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 3, 3, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 5, 5, 4, 4, 3, 2, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 5, 5, 4, 4, 3, 2, 2, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 4, 4, 4, 4, 4, 3, 3, 2, 2, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ];
+    
+    // Generate the cells based on the worldMapShape
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'map-cell';
+            
+            // Get intensity value from map shape (0-5)
+            const intensity = worldMapShape[y][x] || 0;
+            
+            if (intensity > 0) {
+                // Apply different opacity and transform based on intensity
+                cell.style.backgroundColor = `rgba(233, 30, 99, ${intensity * 0.2})`;
+                cell.style.transform = `translateZ(${intensity * 4}px)`;
+                
+                // Add pulse animation to higher intensity cells
+                if (intensity >= 4) {
+                    cell.style.animation = `pulse 2s infinite ${Math.random() * 2}s`;
+                    cell.style.boxShadow = `0 0 ${intensity * 2}px rgba(233, 30, 99, 0.5)`;
+                }
+            }
+            
+            map.appendChild(cell);
+        }
+    }
+    
+    // Add a subtle animation to the map
+    map.style.animation = 'pulseMap 8s ease-in-out infinite';
+}
+
+function setupMapControls() {
+    let rotationX = 15;
+    let rotationY = 0;
+    let scale = 1;
+    const map = document.getElementById('githubMap');
+    
+    // Initialize map transform
+    updateMapTransform();
+    
+    // Rotation controls
+    const rotateLeftButton = document.getElementById('rotateLeft');
+    const rotateRightButton = document.getElementById('rotateRight');
+    
+    if (rotateLeftButton) {
+        rotateLeftButton.addEventListener('click', () => {
+            rotationY -= 5;
+            updateMapTransform();
+        });
+    }
+    
+    if (rotateRightButton) {
+        rotateRightButton.addEventListener('click', () => {
+            rotationY += 5;
+            updateMapTransform();
+        });
+    }
+    
+    // Zoom controls
+    const zoomInButton = document.getElementById('zoomIn');
+    const zoomOutButton = document.getElementById('zoomOut');
+    
+    if (zoomInButton) {
+        zoomInButton.addEventListener('click', () => {
+            if (scale < 1.5) scale += 0.1;
+            updateMapTransform();
+        });
+    }
+    
+    if (zoomOutButton) {
+        zoomOutButton.addEventListener('click', () => {
+            if (scale > 0.7) scale -= 0.1;
+            updateMapTransform();
+        });
+    }
+    
+    function updateMapTransform() {
+        map.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg) scale(${scale})`;
+    }
+    
+    // Add mouse drag functionality for rotation
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    
+    map.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - previousMousePosition.x;
+        const deltaY = e.clientY - previousMousePosition.y;
+        
+        rotationY += deltaX * 0.5;
+        rotationX = Math.max(0, Math.min(30, rotationX - deltaY * 0.5));
+        
+        updateMapTransform();
+        
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    // Add touch support for mobile devices
+    map.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        e.preventDefault();
+    });
+    
+    document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        
+        const deltaX = e.touches[0].clientX - previousMousePosition.x;
+        const deltaY = e.touches[0].clientY - previousMousePosition.y;
+        
+        rotationY += deltaX * 0.5;
+        rotationX = Math.max(0, Math.min(30, rotationX - deltaY * 0.5));
+        
+        updateMapTransform();
+        
+        previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        e.preventDefault();
+    });
+    
+    document.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+}
+
+function setupButtonControls() {
+    const buttons = document.querySelectorAll('.control-button');
+    
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const buttonText = this.textContent;
+            
+            // Reset all buttons
+            buttons.forEach(btn => {
+                btn.style.background = 'rgba(255, 255, 255, 0.1)';
+                btn.style.boxShadow = 'none';
+            });
+            
+            // Highlight selected button
+            this.style.background = 'rgba(255, 255, 255, 0.3)';
+            this.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.2)';
+            
+            // Handle different views based on button text
+            switch(buttonText) {
+                case 'Global View':
+                    document.getElementById('mapContainer').style.opacity = '1';
+                    document.getElementById('facesContainer').style.opacity = '0';
+                    generate3DGithubStyleMap();
+                    break;
+                case 'Data Analysis':
+                    // Could add different data visualization here
+                    break;
+                case 'Regional Insights':
+                    document.getElementById('mapContainer').style.opacity = '0';
+                    document.getElementById('facesContainer').style.opacity = '1';
+                    generateFaces();
+                    animateFaces();
+                    break;
+            }
+        });
+    });
+}
+
+// Add window resize handler to keep the visualization responsive
+window.addEventListener('resize', () => {
+    // Adjust particle positions
+    const particles = document.querySelectorAll('.particle');
+    particles.forEach(particle => {
+        const x = Math.random() * 100;
+        const y = Math.random() * 100;
+        
+        particle.style.left = `${x}%`;
+        particle.style.top = `${y}%`;
+    });
+});
+
+// ThreeJS related code - Define a minimal TweenUtils if using the 3D Sphere component
+const TweenUtils = {
+    tween: function(obj, targetProps, duration, easing) {
+        const startProps = {};
+        const changeProps = {};
+        const startTime = Date.now();
+        const easingFunctions = {
+            linear: t => t,
+            easeInOutQuad: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
+            easeOutQuad: t => t * (2 - t)
+        };
+        
+        // Store starting values and calculate change
+        for (const prop in targetProps) {
+            if (obj[prop] !== undefined) {
+                startProps[prop] = obj[prop];
+                changeProps[prop] = targetProps[prop] - startProps[prop];
+            } else if (obj.value !== undefined) {
+                // Handle uniforms with .value
+                startProps[prop] = obj.value[prop] || 0;
+                changeProps[prop] = targetProps.value[prop] - startProps[prop];
+            }
+        }
+        
+        // Start animation
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easedProgress = easingFunctions[easing] ? 
+                easingFunctions[easing](progress) : progress;
+            
+            for (const prop in targetProps) {
+                if (obj[prop] !== undefined) {
+                    obj[prop] = startProps[prop] + changeProps[prop] * easedProgress;
+                } else if (obj.value !== undefined) {
+                    // Handle uniforms with .value
+                    obj.value[prop] = startProps[prop] + changeProps[prop] * easedProgress;
+                    if (prop === 'value' && typeof targetProps.value === 'object') {
+                        // Handle THREE.Color or other object values
+                        if (targetProps.value.isColor) {
+                            obj.value.r = startProps.r + (targetProps.value.r - startProps.r) * easedProgress;
+                            obj.value.g = startProps.g + (targetProps.value.g - startProps.g) * easedProgress;
+                            obj.value.b = startProps.b + (targetProps.value.b - startProps.b) * easedProgress;
+                        }
+                    }
+                }
+            }
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+        
+        animate();
+    }
+};
+
+// 3D Sphere Component (only if THREE.js is included in your HTML)
+class AnimatedSphere {
+    constructor(scene, camera) {
+        if (typeof THREE === 'undefined') {
+            console.warn('THREE.js is not loaded, AnimatedSphere will not work');
+            return;
+        }
+        
+        this.scene = scene;
+        this.camera = camera;
+        this.active = false;
+        this.parent = new THREE.Group();
+        this.scene.add(this.parent);
+        this.sphere = null;
+        this.particles = [];
+        this.rings = [];
+        this.transitionProgress = 0;
+        this.transitionCallback = null;
+        this.rotationSpeed = 0.002;
+    }
+    
+    preload() {
+        this.generateSphereElements();
+    }
+    
+    generateSphereElements() {
+        if (typeof THREE === 'undefined') return;
+        
+        // Create main sphere
+        const sphereGeometry = new THREE.SphereGeometry(60, 64, 64);
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+            color: 0x021019,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3
+        });
+        
+        this.sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        this.parent.add(this.sphere);
+        
+        // Create glowing outer layer
+        const glowGeometry = new THREE.SphereGeometry(65, 32, 32);
+        const glowMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                glowColor: { value: new THREE.Color(0xe91e63) },
+                viewVector: { value: new THREE.Vector3() }
+            },
+            vertexShader: `
+                uniform vec3 viewVector;
+                varying float intensity;
+                void main() {
+                    vec3 vNormal = normalize(normalMatrix * normal);
+                    intensity = pow(0.7 - dot(vNormal, vec3(0, 0, 1.0)), 2.0);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 glowColor;
+                varying float intensity;
+                void main() {
+                    vec3 glow = glowColor * intensity;
+                    gl_FragColor = vec4(glow, intensity * 0.4);
+                }
+            `,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        });
+        
+        this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        this.parent.add(this.glow);
+        
+        // Create particle ring system
+        this.createParticleRings();
+        
+        // Create data points on sphere
+        this.createDataPoints();
+        
+        // Hide until activated
+        this.parent.visible = false;
+    }
+    
+    createParticleRings() {
+        if (typeof THREE === 'undefined') return;
+        
+        // Create three rings around sphere at different angles
+        const ringRadii = [70, 75, 80];
+        const ringSizes = [0.5, 0.4, 0.3];
+        const ringColors = [0xe91e63, 0x64ffda, 0xffcb6b];
+        const ringParticles = [150, 100, 80];
+        
+        for (let i = 0; i < 3; i++) {
+            const ringGeometry = new THREE.BufferGeometry();
+            const positions = [];
+            
+            // Create ring particles positioned in a circle
+            const radius = ringRadii[i];
+            const particleCount = ringParticles[i];
+            
+            for (let j = 0; j < particleCount; j++) {
+                const angle = (j / particleCount) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                
+                // Add some randomness to y position for more organic feel
+                const y = (Math.random() - 0.5) * 10;
+                
+                positions.push(x, y, z);
+            }
+            
+            ringGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            
+            const ringMaterial = new THREE.PointsMaterial({
+                color: ringColors[i],
+                size: ringSizes[i],
+                transparent: true,
+                opacity: 0.7,
+                map: this.createParticleTexture(),
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            
+            const ring = new THREE.Points(ringGeometry, ringMaterial);
+            
+            // Set ring rotation
+            ring.rotation.x = Math.random() * Math.PI;
+            ring.rotation.y = Math.random() * Math.PI;
+            
+            // Store original positions for animation
+            ring.userData.originalPositions = [...positions];
+            ring.userData.rotationSpeed = 0.001 + Math.random() * 0.001;
+            ring.userData.oscillationSpeed = 0.01 + Math.random() * 0.01;
+            ring.userData.time = Math.random() * 1000;
+            
+            this.rings.push(ring);
+            this.parent.add(ring);
+        }
+    }
+    
+    createParticleTexture() {
+        if (typeof THREE === 'undefined') return null;
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        
+        const context = canvas.getContext('2d');
+        const gradient = context.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, 0,
+            canvas.width / 2, canvas.height / 2, canvas.width / 2
+        );
+        
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.4)');
+gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+context.fillStyle = gradient;
+context.fillRect(0, 0, canvas.width, canvas.height);
+        
+return new THREE.CanvasTexture(canvas);
+}
+    
+createDataPoints() {
+    if (typeof THREE === 'undefined') return;
+        
+    // Create data points distributed around the sphere
+    const dataPointCount = 100;
+    const dataPointGeometry = new THREE.BufferGeometry();
+    const positions = [];
+        
+    for (let i = 0; i < dataPointCount; i++) {
+        // Create points in spherical distribution
+        const phi = Math.acos(-1 + (2 * i) / dataPointCount);
+        const theta = Math.sqrt(dataPointCount * Math.PI) * phi;
+            
+        // Convert to cartesian coordinates
+        const x = 60 * Math.sin(phi) * Math.cos(theta);
+        const y = 60 * Math.sin(phi) * Math.sin(theta);
+        const z = 60 * Math.cos(phi);
+            
+        positions.push(x, y, z);
+    }
+        
+    dataPointGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        
+    const dataPointMaterial = new THREE.PointsMaterial({
+        color: 0x64ffda,
+        size: 1.5,
+        transparent: true,
+        opacity: 0.8,
+        map: this.createParticleTexture(),
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+    });
+        
+    this.dataPoints = new THREE.Points(dataPointGeometry, dataPointMaterial);
+    this.parent.add(this.dataPoints);
+        
+    // Add connection lines between some points
+    this.createConnectionLines(positions);
+}
+    
+createConnectionLines(positions) {
+    if (typeof THREE === 'undefined') return;
+        
+    // Create connections between random data points
+    const connectionCount = 30;
+    const lineGeometry = new THREE.BufferGeometry();
+    const linePositions = [];
+        
+    for (let i = 0; i < connectionCount; i++) {
+        // Select two random point indices
+        const pointIndex1 = Math.floor(Math.random() * (positions.length / 3));
+        const pointIndex2 = Math.floor(Math.random() * (positions.length / 3));
+            
+        // Add both points to create a line between them
+        linePositions.push(
+            positions[pointIndex1 * 3], positions[pointIndex1 * 3 + 1], positions[pointIndex1 * 3 + 2],
+            positions[pointIndex2 * 3], positions[pointIndex2 * 3 + 1], positions[pointIndex2 * 3 + 2]
+        );
+    }
+        
+    lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        
+    const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0xe91e63,
+        transparent: true,
+        opacity: 0.3,
+        blending: THREE.AdditiveBlending
+    });
+        
+    this.connections = new THREE.LineSegments(lineGeometry, lineMaterial);
+    this.parent.add(this.connections);
+}
+    
+show() {
+    this.parent.visible = true;
+    this.active = true;
+        
+    // Animate in
+    TweenUtils.tween(this.parent.scale, { x: 1, y: 1, z: 1 }, 1000, 'easeOutQuad');
+        
+    // Animate opacity of elements
+    TweenUtils.tween(this.sphere.material, { opacity: 0.3 }, 1000, 'easeOutQuad');
+    TweenUtils.tween(this.glow.material.uniforms.glowColor, { value: new THREE.Color(0xe91e63) }, 1000, 'easeOutQuad');
+        
+    this.rings.forEach(ring => {
+        TweenUtils.tween(ring.material, { opacity: 0.7 }, 1000, 'easeOutQuad');
+    });
+        
+    TweenUtils.tween(this.dataPoints.material, { opacity: 0.8 }, 1000, 'easeOutQuad');
+    TweenUtils.tween(this.connections.material, { opacity: 0.3 }, 1000, 'easeOutQuad');
+}
+    
+hide() {
+    this.active = false;
+        
+    // Animate out
+    TweenUtils.tween(this.parent.scale, { x: 0.1, y: 0.1, z: 0.1 }, 1000, 'easeInOutQuad');
+        
+    // Animate opacity of elements
+    TweenUtils.tween(this.sphere.material, { opacity: 0 }, 800, 'easeInOutQuad');
+    TweenUtils.tween(this.glow.material.uniforms.glowColor, { value: new THREE.Color(0x000000) }, 800, 'easeInOutQuad');
+        
+    this.rings.forEach(ring => {
+        TweenUtils.tween(ring.material, { opacity: 0 }, 800, 'easeInOutQuad');
+    });
+        
+    TweenUtils.tween(this.dataPoints.material, { opacity: 0 }, 800, 'easeInOutQuad');
+    TweenUtils.tween(this.connections.material, { opacity: 0 }, 800, 'easeInOutQuad');
+        
+    // Hide after animation completes
+    setTimeout(() => {
+        this.parent.visible = false;
+    }, 1000);
+}
+    
+update(camera) {
+    if (!this.active || typeof THREE === 'undefined') return;
+        
+    // Update glow effect by setting viewVector
+    this.glow.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(
+        camera.position,
+        this.glow.position
+    );
+        
+    // Rotate sphere
+    this.sphere.rotation.y += this.rotationSpeed;
+    this.dataPoints.rotation.y += this.rotationSpeed;
+    this.connections.rotation.y += this.rotationSpeed;
+        
+    // Animate rings
+    this.rings.forEach(ring => {
+        ring.rotation.x += ring.userData.rotationSpeed * 0.5;
+        ring.rotation.y += ring.userData.rotationSpeed;
+        ring.userData.time += ring.userData.oscillationSpeed;
+            
+        // Make particles move slightly based on time
+        const positions = ring.geometry.attributes.position.array;
+        const originalPositions = ring.userData.originalPositions;
+            
+        for (let i = 0; i < positions.length; i += 3) {
+            // Add small oscillation to each point
+            positions[i] = originalPositions[i] + Math.sin(ring.userData.time + i * 0.01) * 1;
+            positions[i + 1] = originalPositions[i + 1] + Math.cos(ring.userData.time + i * 0.01) * 1;
+            positions[i + 2] = originalPositions[i + 2] + Math.sin(ring.userData.time + i * 0.02) * 1;
+        }
+            
+        ring.geometry.attributes.position.needsUpdate = true;
+    });
+        
+    // Pulse data points
+    if (this.dataPoints.material) {
+        this.dataPoints.material.size = 1.5 + Math.sin(Date.now() * 0.001) * 0.5;
+    }
+}
+}
+
+// Initialize the 3D visualization if THREE.js is available
+function initialize3DVisualization() {
+    if (typeof THREE === 'undefined') {
+        console.warn('THREE.js is not loaded, 3D visualization will not be available');
+        return null;
+    }
+    
+    // Create scene
+    const scene = new THREE.Scene();
+    
+    // Create camera
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 150;
+    
+    // Create WebGL renderer
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+    
+    // Add to DOM
+    const container = document.getElementById('threejsContainer');
+    if (container) {
+        container.appendChild(renderer.domElement);
+    } else {
+        document.body.appendChild(renderer.domElement);
+    }
+    
+    // Create controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+    
+    // Create the animated sphere
+    const animatedSphere = new AnimatedSphere(scene, camera);
+    animatedSphere.preload();
+    
+    // Add ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    
+    // Add directional light
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(0, 1, 1);
+    scene.add(directionalLight);
+    
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        animatedSphere.update(camera);
+        renderer.render(scene, camera);
+    }
+    
+    // Start animation loop
+    animate();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // Return the animated sphere instance
+    return animatedSphere;
+}
+
+// Add CSS animations
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+@keyframes fadeIn {
+    0% { opacity: 0.1; }
+    100% { opacity: 0.8; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes fadeInFace {
+    0% { opacity: 0; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseMap {
+    0% { transform: rotateX(15deg) rotateY(0deg) scale(1); }
+    50% { transform: rotateX(15deg) rotateY(5deg) scale(1.05); }
+    100% { transform: rotateX(15deg) rotateY(0deg) scale(1); }
+}
+`;
+document.head.appendChild(styleSheet);
+
+// Initialize 3D visualization if THREE.js is available
+let animatedSphere = null;
+
+// Check if THREE.js is loaded
+if (typeof THREE !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', function() {
+        animatedSphere = initialize3DVisualization();
+        if (animatedSphere) {
+            // Show 3D visualization after a delay
+            setTimeout(() => {
+                animatedSphere.show();
+                document.getElementById('threejsContainer').style.opacity = '1';
+            }, 15000);
+        }
+    });
+}
+</script>
+</body>
+</html>
